@@ -1,1 +1,33 @@
+name: Build data.json daily
+on:
+  schedule:
+    - cron: '30 21 * * *'   # 21:30 UTC = 06:30 KST
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Build data
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          FMP_API_KEY:  ${{ secrets.FMP_API_KEY }}
+        run: python updater.py
+      - name: Commit data.json
+        run: |
+          git config user.name  "auto-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data.json
+          git commit -m "Update data.json" || echo "no changes"
+          git push
 
