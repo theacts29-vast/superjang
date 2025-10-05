@@ -1,0 +1,63 @@
+{
+  "updated_at": "2025-10-05 19:04",
+  "us": {
+    "snapshot": {
+      "sp500": {
+        "close": 0,
+        "changePct": 0
+      },
+      "nasdaq100": {
+        "close": 0,
+        "changePct": 0
+      },
+      "vix": {
+        "close": 0,
+        "changePct": 0
+      }
+    },
+    "top20": []
+  },
+  "assets": {
+    "WTI": {
+      "value": 0,
+      "changePct": 0
+    },
+    "Gold": {
+      "value": 0,
+      "changePct": 0
+    },
+    "Copper": {
+      "value": 0,
+      "changePct": 0
+    },
+    "NatGas": {
+      "value": 0,
+      "changePct": 0
+    },
+    "Corn": {
+      "value": 0,
+      "changePct": 0
+    }
+  },
+  "fx": {
+    "DXY": {
+      "value": 0,
+      "changePct": 0
+    },
+    "USDKRW": {
+      "value": 0,
+      "changePct": 0
+    }
+  },
+  "rates": {
+    "t10y": 0,
+    "delta10y": 0,
+    "t2y": 0,
+    "delta2y": 0,
+    "fedfunds": 0
+  },
+  "fedwatch": {
+    "next": "—"
+  },
+  "news": []
+}

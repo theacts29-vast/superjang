@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daily Macro Dashboard</title>
+  <style>
+    :root{--bg:#0b1020;--card:#121a33;--muted:#8fa2d1;--text:#eaf0ff;--accent:#8cd1ff;--border:#233056}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans KR",Helvetica,Arial}
+    .wrap{max-width:1200px;margin:0 auto;padding:20px}
+    h1{margin:0 0 6px;font-size:22px} .muted{color:var(--muted)} .pill{display:inline-block;padding:4px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
+    .grid{display:grid;gap:12px}
+    .g-3{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+    .card{background:linear-gradient(180deg,#0f1a36,#0c1329);border:1px solid var(--border);border-radius:16px;padding:14px}
+    .title{font-weight:700;margin-bottom:8px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px 8px;border-bottom:1px solid var(--border);text-align:left}
+    thead th{position:sticky;top:0;background:#0f1a34}
+    .val{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .up{color:#7ff0a7}.down{color:#ff9e9e}
+    footer{margin-top:20px;color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Daily Macro Dashboard</h1>
+    <div class="muted" id="asof">—</div>
+  </header>
+
+  <section class="grid g-3" id="us-snapshot"></section>
+
+  <section class="card" style="margin-top:12px">
+    <div class="title">US Top 20 by Market Cap</div>
+    <div class="muted" style="margin-bottom:6px">시총 기준 정렬, 전일 종가 기준</div>
+    <div style="overflow:auto; max-height:420px">
+      <table id="mc-table"><thead><tr>
+        <th>Ticker</th><th>Company</th><th>Price</th><th>Market Cap</th><th>Chg(%)</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="grid g-3" style="margin-top:12px" id="tiles"></section>
+
+  <section class="grid g-3" style="margin-top:12px" id="news"></section>
+
+  <footer>
+    데이터는 FRED/FMP/Yahoo Finance, Reuters/CNBC/WSJ RSS 혼합. 새벽 06:30(KST) 자동 갱신.
+  </footer>
+</div>
+<script>
+(async function(){
+  const data = await fetch('data.json', {cache:'no-store'}).then(r=>r.json());
+  document.getElementById('asof').textContent = `Updated: ${data.updated_at} (KST)`;
+
+  const snap = document.getElementById('us-snapshot');
+  const items = [
+    {k:'S&P 500', v:data.us.snapshot.sp500.close, d:data.us.snapshot.sp500.changePct},
+    {k:'NASDAQ 100', v:data.us.snapshot.nasdaq100.close, d:data.us.snapshot.nasdaq100.changePct},
+    {k:'VIX', v:data.us.snapshot.vix.close, d:data.us.snapshot.vix.changePct},
+    {k:'10Y UST', v:data.rates.t10y, d:data.rates.delta10y},
+    {k:'FedWatch(차기 회의컷)', v:data.fedwatch.next, d:null},
+  ];
+  items.forEach(x=>{
+    const el=document.createElement('div'); el.className='card';
+    el.innerHTML = `<div class="title">${x.k}</div>
+      <div class="val">${fmt(x.v)}</div>
+      ${x.d!==null?`<div class="${x.d>=0?'up':'down'}">${x.d>=0?'+':''}${x.d.toFixed(2)}%</div>`:'<div class="muted">—</div>'}`;
+    snap.appendChild(el);
+  });
+
+  const tbody = document.querySelector('#mc-table tbody');
+  data.us.top20.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><span class="pill">${r.symbol}</span></td>
+      <td>${r.name}</td><td class="val">${fmt(r.price)}</td>
+      <td class="val">${fmtCap(r.marketCap)}</td>
+      <td class="val ${r.changePct>=0?'up':'down'}">${r.changePct>=0?'+':''}${r.changePct.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const tiles = document.getElementById('tiles');
+  const tileList = [
+    {k:'WTI Crude', v:data.assets.WTI},
+    {k:'Gold', v:data.assets.Gold},
+    {k:'Copper', v:data.assets.Copper},
+    {k:'NatGas', v:data.assets.NatGas},
+    {k:'Corn', v:data.assets.Corn},
+    {k:'DXY', v:data.fx.DXY},
+    {k:'USD/KRW', v:data.fx.USDKRW},
+    {k:'2Y UST', v:data.rates.t2y},
+    {k:'FF Rate', v:data.rates.fedfunds}
+  ];
+  tileList.forEach(t=>{
+    const el=document.createElement('div'); el.className='card';
+    el.innerHTML = `<div class="title">${t.k}</div>
+      <div class="val">${fmt(t.v.value)}</div>
+      <div class="${t.v.changePct>=0?'up':'down'}">${t.v.changePct>=0?'+':''}${t.v.changePct.toFixed(2)}%</div>`;
+    tiles.appendChild(el);
+  });
+
+  const news = document.getElementById('news');
+  data.news.slice(0,9).forEach(n=>{
+    const el=document.createElement('div'); el.className='card';
+    el.innerHTML = `<div class="title">${n.source}</div>
+      <a href="${n.link}" target="_blank" rel="noopener" style="color:#fff;text-decoration:none">${n.title}</a>
+      <div class="muted">${n.published}</div>`;
+    news.appendChild(el);
+  });
+
+  function fmt(x){
+    if(x===null||x===undefined) return '—';
+    if(Math.abs(x)>=1000) return Number(x).toLocaleString('en-US',{maximumFractionDigits:2});
+    return Number(x).toFixed(2);
+  }
+  function fmtCap(x){
+    const abs=Math.abs(x);
+    if(abs>=1e12) return (x/1e12).toFixed(2)+'T';
+    if(abs>=1e9) return (x/1e9).toFixed(2)+'B';
+    if(abs>=1e6) return (x/1e6).toFixed(2)+'M';
+    return Number(x).toLocaleString('en-US');
+  }
+})();
+</script>
+</body>
+</html>
